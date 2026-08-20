@@ -1,0 +1,52 @@
+name: Build AnyClaw APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+
+concurrency:
+  group: anyclaw-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: AnyClaw debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Download Termux bootstrap
+        run: bash android/scripts/download-bootstrap.sh
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/anyclaw.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anyclaw
+          path: android/app/build/outputs/apk/debug/anyclaw.apk
+          if-no-files-found: error
