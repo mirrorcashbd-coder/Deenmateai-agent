@@ -1,6 +1,9 @@
 # AnyClaw (Android)
 
-Android APK that embeds a Termux-style Linux bootstrap environment, installs OpenClaw + Codex on first run, and presents the AnyClaw UI inside a WebView.
+Android APK that embeds a Termux-style Linux bootstrap environment, installs
+the latest [OpenCode](https://opencode.ai) release, and presents the built-in
+OpenCode web UI inside a WebView. No accounts or login required to start the
+app.
 
 ## Architecture
 
@@ -11,25 +14,27 @@ Android APK that embeds a Termux-style Linux bootstrap environment, installs Ope
 │  ┌──────────────┐  ┌────────────────┐   │
 │  │   WebView    │  │  Bootstrap     │   │
 │  │              │  │  Installer     │   │
-│  │ localhost:   │  │                │   │
+│  │  localhost:  │  │                │   │
 │  │   18923      │  │  Extracts      │   │
 │  │              │  │  Termux env    │   │
 │  └──────┬───────┘  └───────┬────────┘   │
 │         │                  │            │
 │         ▼                  ▼            │
 │  ┌──────────────────────────────────┐   │
-│  │    /data/data/com.codex.mobile/  │   │
-│  │    files/usr/  (Termux prefix)   │   │
+│  │   /data/data/com.codex.mobile/   │   │
+│  │   files/usr/  (Termux prefix)    │   │
 │  │                                  │   │
-│  │    ├── bin/node                   │   │
-│  │    ├── bin/codex                  │   │
+│  │    ├── bin/node                  │   │
+│  │    ├── bin/opencode (latest)     │   │
 │  │    └── lib/node_modules/         │   │
-│  │        └── codex-web-local/      │   │
-│  │            ├── dist/      (Vue)  │   │
-│  │            └── dist-cli/  (srv)  │   │
+│  │        └── opencode-ai/          │   │
+│  │                                  │   │
 │  └──────────────────────────────────┘   │
 └─────────────────────────────────────────┘
 ```
+
+OpenCode is started with `opencode web --port 18923 --hostname 127.0.0.1`,
+which serves the OpenCode web UI directly to the embedded WebView.
 
 ## Prerequisites
 
@@ -48,17 +53,7 @@ cd android
 
 This downloads `bootstrap-aarch64.zip` (~30 MB) from Termux releases into `app/src/main/assets/`.
 
-### 2. (Optional) Bundle the server
-
-If you want to pre-bundle the codex-web-local server in the APK so users don't need to `npm install` it on first run:
-
-```bash
-./scripts/build-server-bundle.sh
-```
-
-This builds the Vue frontend + Express CLI from the parent project and copies them into `app/src/main/assets/server-bundle/`.
-
-### 3. Build the APK
+### 2. Build the APK
 
 ```bash
 ./gradlew assembleDebug
@@ -77,16 +72,18 @@ For a release build:
 On first launch, the app will:
 
 1. Extract the bootstrap environment (~30 MB compressed, ~100 MB extracted)
-2. Run `apt-get install nodejs-lts` (downloads ~30 MB)
-3. Run `npm install -g @openai/codex codex-web-local`
-4. Prompt for your OpenAI API key (stored encrypted on device)
-5. Start the server and load the WebView
+2. Install proot and Node.js from the Termux repository
+3. Run `npm install -g opencode-ai@latest` (always the latest OpenCode release)
+4. Start the OpenCode web server and load the WebView
+5. Every launch after that skips straight to step 4
 
-Steps 1-3 only happen once. Subsequent launches skip straight to step 4-5.
+No login, account, or API key is required to open the app. When the user is
+ready to use an AI model provider, they can authenticate later with
+`opencode auth login`.
 
 ## Minimum Requirements
 
 - Android 7.0 (API 24) or higher
 - arm64-v8a device (most modern Android phones)
-- ~500 MB free storage for bootstrap + Node.js + Codex
-- Internet connection (for API calls and first-run package installs)
+- ~500 MB free storage for bootstrap + Node.js + OpenCode
+- Internet connection (for first-run package installs and model API calls)

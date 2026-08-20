@@ -158,60 +158,17 @@ class MainActivity : AppCompatActivity() {
         }
         updateStatus("Node.js ready")
 
-        // Step 2b: Install Python
-        if (!serverManager.isPythonInstalled()) {
-            updateStatus("Installing Python…")
-            val pyOk = serverManager.installPython { msg -> updateDetail(msg) }
-            if (!pyOk) {
-                Log.w(TAG, "Python install failed — continuing without it")
+        // Step 2b: Install OpenCode (latest release)
+        if (!serverManager.isOpenCodeInstalled()) {
+            updateStatus("Installing OpenCode (latest)…", "This may take a few minutes")
+            val ocOk = serverManager.installOpenCode { msg -> updateDetail(msg) }
+            if (!ocOk) {
+                throw RuntimeException("Failed to install OpenCode")
             }
         }
+        updateStatus("OpenCode ready")
 
-        // Step 2c: Install bionic-compat.js (Android platform shim for Node.js)
-        serverManager.ensureBionicCompat()
-
-        // Step 2d: Install OpenClaw
-        if (!serverManager.isOpenClawInstalled()) {
-            updateStatus("Installing build dependencies…")
-            serverManager.installOpenClawDeps { msg -> updateDetail(msg) }
-
-            updateStatus("Installing OpenClaw…", "This may take several minutes")
-            val openclawOk = serverManager.installOpenClaw { msg -> updateDetail(msg) }
-            if (!openclawOk) {
-                Log.w(TAG, "OpenClaw install failed — continuing without it")
-            } else {
-                updateStatus("OpenClaw installed")
-            }
-        }
-
-        // Step 3: Install Codex CLI
-        if (!serverManager.isCodexInstalled()) {
-            updateStatus("Installing Codex CLI…", "This may take a few minutes")
-            val codexOk = serverManager.installCodex { msg -> updateDetail(msg) }
-            if (!codexOk) {
-                throw RuntimeException("Failed to install Codex")
-            }
-        }
-
-        // Ensure codex wrapper script exists
-        serverManager.ensureCodexWrapperScript()
-
-        // Step 3a: Extract web UI from APK assets (every launch)
-        updateStatus("Updating web UI…")
-        serverManager.installServerBundle { msg -> updateDetail(msg) }
-
-        // Step 3b: Install native platform binary
-        if (!serverManager.isPlatformBinaryInstalled()) {
-            updateStatus("Installing Codex platform binary…")
-            val binOk = serverManager.installPlatformBinary { msg -> updateDetail(msg) }
-            if (!binOk) {
-                throw RuntimeException("Failed to install Codex platform binary")
-            }
-        }
-        updateStatus("Codex ready")
-
-        // Step 3c: Write full-access config and create default workspace
-        serverManager.ensureFullAccessConfig()
+        // Step 3: Create default workspace
         serverManager.ensureDefaultWorkspace()
 
         // Step 4: Start CONNECT proxy (needed for native binary DNS/TLS)
@@ -222,39 +179,24 @@ class MainActivity : AppCompatActivity() {
 
         // Step 5: Authentication is optional — never block startup on login.
         // No-login mode: the app opens the web UI directly. The user can
-        // authenticate later (`codex login`) when they want to use the chat.
+        // authenticate later (`opencode auth login`) when they want to chat.
         updateStatus("Authentication skipped (no-login mode)")
 
-        // Step 6: Health check is skipped too — it requires a valid API
-        // session and would fail before the user has authenticated.
-
-        // Step 7: Configure and start OpenClaw
-        if (serverManager.isOpenClawInstalled()) {
-            updateStatus("Configuring OpenClaw…")
-            serverManager.configureOpenClawAuth()
-
-            updateStatus("Starting OpenClaw gateway…")
-            serverManager.startOpenClawGateway()
-
-            updateStatus("Starting OpenClaw Control UI…")
-            serverManager.startOpenClawControlUiServer()
-        }
-
-        // Step 8: Start web server
+        // Step 6: Start web server
         updateStatus("Starting server…")
         val started = serverManager.startServer()
         if (!started) {
             throw RuntimeException("Failed to start server")
         }
 
-        // Step 9: Wait for ready
+        // Step 7: Wait for ready
         updateStatus("Waiting for server…")
         val ready = serverManager.waitForServer(timeoutMs = 90_000)
         if (!ready) {
             throw RuntimeException("Server did not start in time")
         }
 
-        // Step 10: Show web UI
+        // Step 8: Show web UI
         runOnUiThread {
             showLoading(false)
             webView.visibility = View.VISIBLE

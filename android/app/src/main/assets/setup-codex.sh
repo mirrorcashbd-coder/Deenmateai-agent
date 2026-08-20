@@ -1,13 +1,13 @@
-#!/data/data/com.codex.mobile/files/usr/bin/sh
+#!/data/user/0/com.codex.mobile/files/usr/bin/sh
 #
-# First-run setup script for Codex inside the Termux bootstrap environment.
+# First-run setup script for OpenCode inside the Termux bootstrap environment.
 # Called by the Android app after bootstrap extraction, or can be run manually
 # from a shell inside the prefix.
 #
 # This script:
 #   1. Updates the package index
 #   2. Installs Node.js LTS
-#   3. Installs @openai/codex and codex-web-local globally via npm
+#   3. Installs opencode-ai (latest) globally via npm
 #
 # Exit codes:
 #   0 = success
@@ -30,17 +30,11 @@ apt-get install -y nodejs-lts || {
 echo "[setup] Node.js version: $(node --version)"
 echo "[setup] npm version: $(npm --version)"
 
-echo "[setup] Installing @openai/codex..."
-npm install -g @openai/codex || {
-    echo "[setup] ERROR: Failed to install @openai/codex"
+echo "[setup] Installing opencode-ai (latest)..."
+npm install -g opencode-ai@latest || {
+    echo "[setup] ERROR: Failed to install opencode-ai"
     exit 2
 }
 
-echo "[setup] Installing codex-web-local..."
-npm install -g codex-web-local || {
-    echo "[setup] ERROR: Failed to install codex-web-local"
-    exit 2
-}
-
-echo "[setup] Codex CLI: $(codex --version 2>/dev/null || echo 'installed')"
+echo "[setup] OpenCode version: $(opencode --version 2>/dev/null || echo 'installed')"
 echo "[setup] Setup complete!"
