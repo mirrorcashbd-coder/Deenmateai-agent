@@ -44,16 +44,22 @@ jobs:
       - name: Build debug APKs
         run: ./gradlew :app:assemblePlayDebug :app:assembleThirdPartyDebug
 
+      - name: Stage APKs with predictable names
+        run: |
+          mkdir -p build/apk-upload
+          cp app/build/outputs/apk/play/debug/*.apk build/apk-upload/openclaw-play-debug.apk
+          cp app/build/outputs/apk/thirdParty/debug/*.apk build/apk-upload/openclaw-third-party-debug.apk
+
       - name: Upload play APK
         uses: actions/upload-artifact@v4
         with:
           name: openclaw-play-debug-apk
-          path: apps/android/app/build/outputs/apk/play/debug/app-play-debug.apk
+          path: apps/android/build/apk-upload/openclaw-play-debug.apk
           if-no-files-found: error
 
       - name: Upload third-party APK
         uses: actions/upload-artifact@v4
         with:
           name: openclaw-third-party-debug-apk
-          path: apps/android/app/build/outputs/apk/thirdParty/debug/app-thirdParty-debug.apk
+          path: apps/android/build/apk-upload/openclaw-third-party-debug.apk
           if-no-files-found: error
