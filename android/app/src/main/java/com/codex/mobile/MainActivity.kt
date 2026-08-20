@@ -12,7 +12,6 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -221,39 +220,13 @@ class MainActivity : AppCompatActivity() {
             throw RuntimeException("Failed to start network proxy")
         }
 
-        // Step 5: Authenticate via `codex login`
-        updateStatus("Checking authentication…")
-        if (!serverManager.isLoggedIn()) {
-            updateStatus("Login required — opening browser…")
-            val authOk = serverManager.loginWithUrl(
-                onLoginUrl = { url ->
-                    runOnUiThread {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    }
-                },
-                onProgress = { msg -> updateDetail(msg) },
-            )
-            if (!authOk && !serverManager.isLoggedIn()) {
-                updateStatus("Browser login failed — enter API key manually")
-                val apiKey = requestApiKey()
-                if (apiKey.isBlank()) {
-                    throw RuntimeException("No API key provided")
-                }
-                val loginOk = serverManager.loginWithApiKey(apiKey)
-                if (!loginOk) {
-                    throw RuntimeException("Login failed — check your API key")
-                }
-            }
-        }
-        updateStatus("Authenticated")
+        // Step 5: Authentication is optional — never block startup on login.
+        // No-login mode: the app opens the web UI directly. The user can
+        // authenticate later (`codex login`) when they want to use the chat.
+        updateStatus("Authentication skipped (no-login mode)")
 
-        // Step 6: Health check
-        updateStatus("Verifying API access…", "Sending test message")
-        val healthOk = serverManager.healthCheck { msg -> updateDetail(msg) }
-        if (!healthOk) {
-            throw RuntimeException("API health check failed — Codex could not reach OpenAI")
-        }
-        updateStatus("API verified")
+        // Step 6: Health check is skipped too — it requires a valid API
+        // session and would fail before the user has authenticated.
 
         // Step 7: Configure and start OpenClaw
         if (serverManager.isOpenClawInstalled()) {
@@ -287,45 +260,6 @@ class MainActivity : AppCompatActivity() {
             webView.visibility = View.VISIBLE
             webView.loadUrl("http://127.0.0.1:${CodexServerManager.SERVER_PORT}/")
         }
-    }
-
-    /**
-     * Fallback: prompt for API key if browser login fails.
-     */
-    private fun requestApiKey(): String {
-        var result = ""
-        val lock = Object()
-
-        runOnUiThread {
-            val input = EditText(this).apply {
-                hint = getString(R.string.api_key_hint)
-                setSingleLine(true)
-            }
-            val padding = (24 * resources.displayMetrics.density).toInt()
-            val container = android.widget.FrameLayout(this).apply {
-                setPadding(padding, padding / 2, padding, 0)
-                addView(input)
-            }
-
-            AlertDialog.Builder(this)
-                .setTitle(R.string.api_key_title)
-                .setMessage(R.string.api_key_message)
-                .setView(container)
-                .setCancelable(false)
-                .setPositiveButton(R.string.ok) { _, _ ->
-                    result = input.text.toString().trim()
-                    synchronized(lock) { lock.notifyAll() }
-                }
-                .setNegativeButton(R.string.cancel) { _, _ ->
-                    synchronized(lock) { lock.notifyAll() }
-                }
-                .show()
-        }
-
-        synchronized(lock) {
-            lock.wait(300_000)
-        }
-        return result
     }
 
     // ── UI helpers ──────────────────────────────────────────────────────────
