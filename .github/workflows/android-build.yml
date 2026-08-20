@@ -71,9 +71,7 @@ jobs:
   build-release:
     name: Signed release (AAB + APK)
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && env.HAS_SIGNING == 'true'
-    env:
-      HAS_SIGNING: ${{ secrets.OPENCLAW_ANDROID_KEY_PASSWORD != '' }}
+    if: github.event_name == 'workflow_dispatch' && secrets.OPENCLAW_ANDROID_KEY_PASSWORD != ''
     defaults:
       run:
         working-directory: apps/android
